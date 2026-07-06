@@ -5,16 +5,30 @@ import plotly.express as px
 import pandas as pd
 import joblib
 
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 df = pd.read_excel(os.path.join(BASE_DIR, 'data', 'Crime_Data.xlsx'))
 
-modelo_edad = joblib.load(os.path.join(BASE_DIR, 'modelos', 'modelo_edad_rf.pkl'))
-modelo_arresto = joblib.load(os.path.join(BASE_DIR, 'modelos', 'modelo_arresto_rf.bin'))
-encoders = joblib.load(os.path.join(BASE_DIR, 'modelos', 'encoders_arresto.pkl'))      
+
+for _col in ['Crm Cd Desc', 'Premis Desc', 'Weapon Desc', 'AREA NAME', 'Vict Descent', 'Vict Sex']:
+    if _col in df.columns:
+        df[_col] = df[_col].astype('category')
+
+for _col in ['AREA', 'Part 1-2', 'Crm Cd', 'Premis Cd', 'Weapon Used Cd',
+             'Anio_OCC', 'Mes_OCC', 'DiaSemana_OCC', 'Hora_OCC', 'Arresto', 'Vict Age']:
+    if _col in df.columns:
+        df[_col] = pd.to_numeric(df[_col], errors='coerce', downcast='integer')
+
+df = df.drop(columns=['DATE OCC', 'TIME OCC', 'Rpt Dist No', 'LAT', 'LON'], errors='ignore')
+
+modelo_edad = joblib.load(os.path.join(BASE_DIR, 'modelos', 'modelo_edad_rf.pkl'))          
+modelo_arresto = joblib.load(os.path.join(BASE_DIR, 'modelos', 'modelo_arresto_rf.bin'))     
+encoders = joblib.load(os.path.join(BASE_DIR, 'modelos', 'encoders_arresto.pkl'))            
 
 le_sex = encoders['sex']
 le_descent = encoders['descent']
+
 
 areas = df[['AREA', 'AREA NAME']].drop_duplicates().sort_values('AREA NAME')
 crimenes = df[['Crm Cd', 'Crm Cd Desc']].drop_duplicates().sort_values('Crm Cd Desc')
@@ -53,7 +67,7 @@ fig_anio = px.bar(
 
 
 app = dash.Dash(__name__)
-server = app.server 
+server = app.server  
 
 app.layout = html.Div([
     html.H1('Dashboard de Criminalidad — LAPD 2020-2021'),
@@ -94,13 +108,13 @@ app.layout = html.Div([
 
         html.Label('Sexo de la víctima'),
         dcc.Dropdown(id='in-sexo',
-                     options=[{'label': s, 'value': s} for s in le_sex.classes_],
-                     value=le_sex.classes_[0]),
+                     options=[{'label': str(s), 'value': str(s)} for s in le_sex.classes_],
+                     value=str(le_sex.classes_[0]), clearable=False),
 
         html.Label('Descendencia de la víctima (código LAPD)'),
         dcc.Dropdown(id='in-descent',
-                     options=[{'label': d, 'value': d} for d in le_descent.classes_],
-                     value=le_descent.classes_[0]),
+                     options=[{'label': str(d), 'value': str(d)} for d in le_descent.classes_],
+                     value=str(le_descent.classes_[0]), clearable=False),
 
         html.Label('Edad de la víctima (para el modelo de arresto)'),
         dcc.Slider(id='in-edad', min=0, max=99, step=1, value=30,
@@ -141,7 +155,8 @@ app.layout = html.Div([
     Input('in-hora', 'value'),
 )
 def predecir(area, crmcd, premisa, arma, sexo, descent, edad, mes, dia, hora):
-    anio = 2021  
+    anio = 2021  # fijo, o podrías exponerlo como control también
+
 
     fila_edad = pd.DataFrame([{
         'AREA': area, 'Part 1-2': 1, 'Crm Cd': crmcd,
@@ -151,8 +166,8 @@ def predecir(area, crmcd, premisa, arma, sexo, descent, edad, mes, dia, hora):
     pred_edad = modelo_edad.predict(fila_edad)[0]
 
 
-    sexo_cod = le_sex.transform([sexo])[0]
-    descent_cod = le_descent.transform([descent])[0]
+    sexo_cod = le_sex.transform([str(sexo)])[0]
+    descent_cod = le_descent.transform([str(descent)])[0]
 
     fila_arresto = pd.DataFrame([{
         'AREA': area, 'Part 1-2': 1, 'Crm Cd': crmcd,
