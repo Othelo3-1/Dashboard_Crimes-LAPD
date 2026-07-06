@@ -1,14 +1,17 @@
+import os
 import dash
 from dash import dcc, html, Input, Output
 import plotly.express as px
 import pandas as pd
 import joblib
 
-df = pd.read_excel(r"C:\Users\Aeote\Downloads\dashboard_crimen (2)\dashboard_crimen\data\Crime_Data.xlsx")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-modelo_edad = joblib.load(r"C:\Users\Aeote\Downloads\dashboard_crimen (2)\dashboard_crimen\modelos\modelo_edad_rf.pkl")
-modelo_arresto = joblib.load(r"C:\Users\Aeote\Downloads\dashboard_crimen (2)\dashboard_crimen\modelos\modelo_arresto_rf.bin")
-encoders = joblib.load(r"C:\Users\Aeote\Downloads\dashboard_crimen (2)\dashboard_crimen\modelos\encoders_arresto.pkl")          
+df = pd.read_excel(os.path.join(BASE_DIR, 'data', 'Crime_Data.xlsx'))
+
+modelo_edad = joblib.load(os.path.join(BASE_DIR, 'modelos', 'modelo_edad_rf.pkl'))
+modelo_arresto = joblib.load(os.path.join(BASE_DIR, 'modelos', 'modelo_arresto_rf.bin'))
+encoders = joblib.load(os.path.join(BASE_DIR, 'modelos', 'encoders_arresto.pkl'))      
 
 le_sex = encoders['sex']
 le_descent = encoders['descent']
